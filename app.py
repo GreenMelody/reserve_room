@@ -88,34 +88,38 @@ def create_reservation():
     if 'user_id' not in session:
         return jsonify({'error': '로그인이 필요합니다.'}), 403
 
-    user_id = session['user_id']
-    room_id = request.form['room_id']
     date = request.form['date']
-    start_time = request.form['start_time']
-    end_time = request.form['end_time']
+    start_time = int(request.form['start_time'])
+    end_time = int(request.form['end_time'])
+    room_name = request.form['room_name']
 
     conn = get_db_connection()
+    room = conn.execute('SELECT id FROM rooms WHERE room_name = ?', (room_name,)).fetchone()
 
-    # 중복 예약 확인
-    overlap = conn.execute('''
-        SELECT * FROM reservations 
-        WHERE room_id = ? AND date = ? AND 
-              ((start_time <= ? AND end_time >= ?) OR 
-               (start_time >= ? AND start_time < ?))
-    ''', (room_id, date, start_time, start_time, start_time, end_time)).fetchone()
+    if room:
+        room_id = room['id']
 
-    if overlap:
-        return jsonify({'error': '이미 예약된 시간이 있습니다.'}), 400
+        # 예약 중복 여부 확인
+        overlapping_reservations = conn.execute('''
+            SELECT * FROM reservations
+            WHERE room_id = ? AND date = ? AND 
+                  ((start_time <= ? AND end_time > ?) OR (start_time < ? AND end_time >= ?))
+        ''', (room_id, date, end_time, start_time, start_time, end_time)).fetchall()
 
-    # 예약 생성
-    conn.execute('''
-        INSERT INTO reservations (user_id, room_id, date, start_time, end_time, status)
-        VALUES (?, ?, ?, ?, ?, '예약요청')
-    ''', (user_id, room_id, date, start_time, end_time))
-    conn.commit()
-    conn.close()
+        if overlapping_reservations:
+            return jsonify({'error': '중복된 예약이 있습니다.'})
 
-    return jsonify({'message': '예약 요청이 완료되었습니다.'})
+        # 예약 생성
+        conn.execute('''
+            INSERT INTO reservations (room_id, date, start_time, end_time, status)
+            VALUES (?, ?, ?, ?, '예약요청')
+        ''', (room_id, date, start_time, end_time))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': '예약 요청이 완료되었습니다.'})
+    else:
+        return jsonify({'error': '회의실을 찾을 수 없습니다.'}), 404
 
 # 예약 취소 처리
 @app.route('/reservations/<int:id>', methods=['DELETE'])
