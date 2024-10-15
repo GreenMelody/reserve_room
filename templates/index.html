@@ -158,16 +158,19 @@
                             } else if (reservation.status === '예약요청') {
                                 cell.style.backgroundColor = 'orange';
                             }
+                            // 예약된 칸 클릭 시 취소 옵션 제공
+                            cell.addEventListener('click', function () {
+                                if (confirm('예약을 취소하시겠습니까?')) {
+                                    cancelReservation(reservation.id);
+                                }
+                            });
                         } else {
                             cell.style.backgroundColor = 'white';  // 예약 없음
-                        }
-    
-                        // 빈 칸을 클릭하면 예약 요청 모달을 열기
-                        cell.addEventListener('click', function () {
-                            if (!reservation) {
+                            // 빈 칸을 클릭하면 예약 요청 모달을 열기
+                            cell.addEventListener('click', function () {
                                 openReservationModal(room.name, i);
-                            }
-                        });
+                            });
+                        }
     
                         row.appendChild(cell);
                     }
@@ -244,6 +247,26 @@
                 .catch(error => {
                     console.error('Error making reservation:', error);
                     alert('예약 요청 중 오류가 발생했습니다.');
+                });
+            }
+    
+            // 예약 취소 함수
+            function cancelReservation(reservationId) {
+                fetch(`/reservations/${reservationId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert('예약이 취소되었습니다.');
+                        checkAvailabilityBtn.click();  // 예약 취소 후 테이블 다시 조회
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cancelling reservation:', error);
+                    alert('예약 취소 중 오류가 발생했습니다.');
                 });
             }
     
