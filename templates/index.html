@@ -69,7 +69,7 @@
                     return;
                 }
 
-                // 서버에서 예약 현황 가져오기
+                // 서버에서 예약 현황 및 회의실 정보 가져오기
                 fetch(`/reservations?date=${selectedDate}&room_id=1`)  // room_id는 필요에 따라 선택하거나 지정
                     .then(response => response.json())
                     .then(data => {
@@ -77,7 +77,7 @@
                             alert(data.error);
                             return;
                         }
-                        updateReservationTable(data);
+                        updateReservationTable(data.reservations, data.room_name);  // 서버에서 회의실 이름과 함께 데이터 받기
                     })
                     .catch(error => {
                         console.error('Error fetching reservations:', error);
@@ -86,16 +86,16 @@
             });
 
             // 테이블을 업데이트하는 함수
-            function updateReservationTable(reservations) {
+            function updateReservationTable(reservations, roomName) {
                 // 테이블 내용 초기화
                 reservationTable.innerHTML = '';
 
-                // 하나의 행을 생성 (회의실 1만 예시로 사용, 필요에 따라 다중 회의실로 확장 가능)
+                // 하나의 행을 생성
                 let row = document.createElement('tr');
                 
-                // 회의실 이름 셀 추가
+                // 동적으로 회의실 이름을 셀에 추가
                 let roomCell = document.createElement('td');
-                roomCell.innerText = `회의실 1`;  // 회의실 이름은 필요에 따라 동적으로 변경 가능
+                roomCell.innerText = roomName || `회의실`;  // 서버에서 받아온 회의실 이름 표시
                 row.appendChild(roomCell);
 
                 // 00시부터 23시까지 시간 셀 추가
