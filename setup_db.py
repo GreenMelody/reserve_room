@@ -34,14 +34,6 @@ def create_tables():
                         FOREIGN KEY (room_id) REFERENCES rooms(id)
                     )''')
 
-    # 세션 테이블 생성
-    cursor.execute('''CREATE TABLE IF NOT EXISTS sessions (
-                        session_id TEXT PRIMARY KEY,
-                        user_id INTEGER,
-                        expiration_date TEXT NOT NULL,
-                        FOREIGN KEY (user_id) REFERENCES users(id)
-                    )''')
-
     # 관리자 계정 추가
     add_admin_user(cursor)
 
