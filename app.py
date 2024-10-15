@@ -70,7 +70,8 @@ def get_reservations():
             WHERE room_id = ? AND date = ?
         ''', (room['id'], selected_date)).fetchall()
 
-        reservations_by_room[room['id']] = reservations
+        # Row 객체를 딕셔너리로 변환
+        reservations_by_room[room['id']] = [dict(reservation) for reservation in reservations]
 
     conn.close()
 
