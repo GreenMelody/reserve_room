@@ -6,7 +6,6 @@
     <title>회의실 예약</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 모달 중앙 위에 토스트를 표시하는 CSS */
         .toast-position {
             position: absolute;
             top: 10%;
@@ -122,17 +121,18 @@
             let selectedRoom = '';
             let selectedDate = '';
     
-            // 조회 버튼 클릭 이벤트 핸들러
-            checkAvailabilityBtn.addEventListener('click', function () {
-                selectedDate = reservationDateInput.value;
-                
-                if (!selectedDate) {
-                    alert("날짜를 선택해주세요.");
-                    return;
-                }
+            // 페이지 로드 시 현재 날짜로 설정하고 예약 현황 조회
+            function setTodayAndFetchReservations() {
+                const today = new Date().toISOString().split('T')[0];  // YYYY-MM-DD 형식으로 오늘 날짜 가져오기
+                reservationDateInput.value = today;  // 입력 필드에 오늘 날짜 설정
+                selectedDate = today;  // selectedDate를 오늘 날짜로 설정
+                fetchReservations(selectedDate);  // 예약 현황 조회
+            }
     
+            // 예약 현황 조회 함수
+            function fetchReservations(date) {
                 // 서버에서 예약 현황 및 회의실 정보 가져오기
-                fetch(`/reservations?date=${selectedDate}`)
+                fetch(`/reservations?date=${date}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.error) {
@@ -145,6 +145,18 @@
                         console.error('Error fetching reservations:', error);
                         alert("예약 데이터를 가져오는 중 오류가 발생했습니다.");
                     });
+            }
+    
+            // 조회 버튼 클릭 이벤트 핸들러
+            checkAvailabilityBtn.addEventListener('click', function () {
+                selectedDate = reservationDateInput.value;
+                
+                if (!selectedDate) {
+                    alert("날짜를 선택해주세요.");
+                    return;
+                }
+    
+                fetchReservations(selectedDate);  // 선택한 날짜로 예약 현황 조회
             });
     
             // 테이블 업데이트
@@ -258,7 +270,7 @@
                     } else {
                         alert('예약 요청이 완료되었습니다.');
                         reservationModal.hide();  // 예약 완료 후 모달 닫기
-                        checkAvailabilityBtn.click();  // 예약 후 테이블 다시 조회
+                        fetchReservations(selectedDate);  // 예약 후 테이블 다시 조회
                     }
                 })
                 .catch(error => {
@@ -278,7 +290,7 @@
                         alert(data.error);
                     } else {
                         alert('예약이 취소되었습니다.');
-                        checkAvailabilityBtn.click();  // 예약 취소 후 테이블 다시 조회
+                        fetchReservations(selectedDate);  // 예약 취소 후 테이블 다시 조회
                     }
                 })
                 .catch(error => {
@@ -292,6 +304,9 @@
                 toastEl.querySelector('.toast-body').innerText = message;
                 toast.show();  // 토스트 표시
             }
+    
+            // 페이지 로드 시 실행
+            setTodayAndFetchReservations();  // 현재 날짜 설정 후 예약 현황 조회
         });
     </script>
 
