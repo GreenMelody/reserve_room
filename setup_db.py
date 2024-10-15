@@ -1,4 +1,5 @@
 import sqlite3
+from werkzeug.security import generate_password_hash
 
 def create_tables():
     conn = sqlite3.connect('reservation_system.db')
@@ -41,8 +42,31 @@ def create_tables():
                         FOREIGN KEY (user_id) REFERENCES users(id)
                     )''')
 
+    # 관리자 계정 추가
+    add_admin_user(cursor)
+
     conn.commit()
     conn.close()
+
+def add_admin_user(cursor):
+    username = 'root'
+    password = generate_password_hash('root')  # 비밀번호 암호화
+    name_korean = '관리자'
+    name_english = 'admin'
+    role = '관리자'
+
+    # 이미 관리자 계정이 존재하는지 확인
+    cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+    admin = cursor.fetchone()
+
+    if not admin:
+        cursor.execute('''
+            INSERT INTO users (username, password, name_korean, name_english, role)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (username, password, name_korean, name_english, role))
+        print("관리자 계정이 생성되었습니다.")
+    else:
+        print("관리자 계정이 이미 존재합니다.")
 
 if __name__ == "__main__":
     create_tables()
