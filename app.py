@@ -52,25 +52,34 @@ def index():
 # 예약 현황 조회 API
 @app.route('/reservations', methods=['GET'])
 def get_reservations():
-    if 'user_id' not in session:
-        return jsonify({'error': '로그인이 필요합니다.'}), 403
+    selected_date = request.args.get('date')
 
-    date = request.args.get('date')
-    room_id = request.args.get('room_id')
+    if not selected_date:
+        return jsonify({'error': '날짜가 지정되지 않았습니다.'}), 400
 
     conn = get_db_connection()
-    reservations = conn.execute('SELECT * FROM reservations WHERE date = ? AND room_id = ?', (date, room_id)).fetchall()
+
+    # 모든 회의실 리스트 가져오기
+    rooms = conn.execute('SELECT * FROM rooms').fetchall()
+
+    # 예약 데이터를 회의실별로 가져오기
+    reservations_by_room = {}
+    for room in rooms:
+        reservations = conn.execute('''
+            SELECT * FROM reservations 
+            WHERE room_id = ? AND date = ?
+        ''', (room['id'], selected_date)).fetchall()
+
+        reservations_by_room[room['id']] = reservations
+
     conn.close()
 
-    results = []
-    for r in reservations:
-        results.append({
-            'room_id': r['room_id'],
-            'start_time': r['start_time'],
-            'end_time': r['end_time'],
-            'status': r['status']
-        })
-    return jsonify(results)
+    # 회의실 리스트와 각 회의실의 예약 데이터를 반환
+    return jsonify({
+        'rooms': [{'id': room['id'], 'name': room['room_name']} for room in rooms],
+        'reservations_by_room': reservations_by_room
+    })
+
 
 # 예약 요청 처리
 @app.route('/reservations', methods=['POST'])
