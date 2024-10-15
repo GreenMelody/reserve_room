@@ -18,10 +18,16 @@
 <body>
     <div class="container">
         <h1 class="mt-5">회의실 예약 시스템</h1>
-        <div class="mt-4">
-            <label for="date">예약일:</label>
-            <input type="date" id="reservation-date" class="form-control" />
-            <button id="check-availability" class="btn btn-primary mt-2">조회</button>
+        <div class="row mt-4">
+            <div class="col-auto d-flex align-items-center" style="height: 38px;">
+                <label for="reservation-date" class="form-label mb-0" style="line-height: 1.5;">예약일:</label>
+            </div>
+            <div class="col-auto">
+                <input type="date" id="reservation-date" class="form-control" />
+            </div>
+            <div class="col-auto">
+                <button id="check-availability" class="btn btn-primary">조회</button>
+            </div>
         </div>
 
         <div class="mt-4">
