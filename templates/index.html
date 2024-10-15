@@ -108,6 +108,7 @@
             const startTimeSelect = document.getElementById('start-time');
             const endTimeSelect = document.getElementById('end-time');
             const reserveButton = document.getElementById('reserve-button');
+            const reservationModal = new bootstrap.Modal(document.getElementById('reservationModal'));  // 모달 객체 생성
             let selectedRoom = '';
             let selectedDate = '';
     
@@ -188,8 +189,7 @@
                 populateTimeOptions(startTime);
     
                 // 모달 표시
-                const modal = new bootstrap.Modal(document.getElementById('reservationModal'));
-                modal.show();
+                reservationModal.show();  // 모달 표시
     
                 // 예약 버튼 클릭 이벤트 처리
                 reserveButton.onclick = function () {
@@ -241,6 +241,7 @@
                         showToast("중복된 예약이 있습니다.");
                     } else {
                         alert('예약 요청이 완료되었습니다.');
+                        reservationModal.hide();  // 예약 완료 후 모달 닫기
                         checkAvailabilityBtn.click();  // 예약 후 테이블 다시 조회
                     }
                 })

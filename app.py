@@ -44,7 +44,6 @@ def logout():
 # 예약 시스템 메인 페이지
 @app.route('/')
 def index():
-    print(f"session:{session}")
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
