@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import uuid
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'reserve'
 
 # DB 연결 함수
 def get_db_connection():
@@ -44,6 +44,7 @@ def logout():
 # 예약 시스템 메인 페이지
 @app.route('/')
 def index():
+    print(f"session:{session}")
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -92,6 +93,7 @@ def create_reservation():
     start_time = int(request.form['start_time'])
     end_time = int(request.form['end_time'])
     room_name = request.form['room_name']
+    user_id = session['user_id']  # 현재 로그인한 사용자의 user_id 가져오기
 
     conn = get_db_connection()
     room = conn.execute('SELECT id FROM rooms WHERE room_name = ?', (room_name,)).fetchone()
@@ -109,11 +111,11 @@ def create_reservation():
         if overlapping_reservations:
             return jsonify({'error': '중복된 예약이 있습니다.'})
 
-        # 예약 생성
+        # 예약 생성 (user_id 추가)
         conn.execute('''
-            INSERT INTO reservations (room_id, date, start_time, end_time, status)
-            VALUES (?, ?, ?, ?, '예약요청')
-        ''', (room_id, date, start_time, end_time))
+            INSERT INTO reservations (user_id, room_id, date, start_time, end_time, status)
+            VALUES (?, ?, ?, ?, ?, '예약요청')
+        ''', (user_id, room_id, date, start_time, end_time))
         conn.commit()
         conn.close()
 
