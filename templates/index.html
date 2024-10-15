@@ -20,22 +20,181 @@
                 <thead>
                     <tr>
                         <th>회의실명</th>
+                        <!-- 00부터 23까지 시간을 헤더로 표시 -->
                         <th>00</th>
                         <th>01</th>
-                        <th>...</th>
+                        <th>02</th>
+                        <th>03</th>
+                        <th>04</th>
+                        <th>05</th>
+                        <th>06</th>
+                        <th>07</th>
+                        <th>08</th>
+                        <th>09</th>
+                        <th>10</th>
+                        <th>11</th>
+                        <th>12</th>
+                        <th>13</th>
+                        <th>14</th>
+                        <th>15</th>
+                        <th>16</th>
+                        <th>17</th>
+                        <th>18</th>
+                        <th>19</th>
+                        <th>20</th>
+                        <th>21</th>
+                        <th>22</th>
                         <th>23</th>
                     </tr>
                 </thead>
                 <tbody id="reservation-table">
-                    <!-- 예약현황 표 내용 -->
+                    <!-- 예약현황 표 내용이 여기에 표시됩니다. -->
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        document.getElementById('check-availability').addEventListener('click', function() {
-            // 예약현황 조회 로직 추가
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkAvailabilityBtn = document.getElementById('check-availability');
+            const reservationTable = document.getElementById('reservation-table');
+            const reservationDateInput = document.getElementById('reservation-date');
+
+            // 조회 버튼 클릭 이벤트 핸들러
+            checkAvailabilityBtn.addEventListener('click', function () {
+                const selectedDate = reservationDateInput.value;
+                
+                if (!selectedDate) {
+                    alert("날짜를 선택해주세요.");
+                    return;
+                }
+
+                // 서버에서 예약 현황 가져오기
+                fetch(`/reservations?date=${selectedDate}&room_id=1`)  // room_id는 필요에 따라 선택하거나 지정
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                            return;
+                        }
+                        updateReservationTable(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching reservations:', error);
+                        alert("예약 데이터를 가져오는 중 오류가 발생했습니다.");
+                    });
+            });
+
+            // 테이블을 업데이트하는 함수
+            function updateReservationTable(reservations) {
+                // 테이블 내용 초기화
+                reservationTable.innerHTML = '';
+
+                // 하나의 행을 생성 (회의실 1만 예시로 사용, 필요에 따라 다중 회의실로 확장 가능)
+                let row = document.createElement('tr');
+                
+                // 회의실 이름 셀 추가
+                let roomCell = document.createElement('td');
+                roomCell.innerText = `회의실 1`;  // 회의실 이름은 필요에 따라 동적으로 변경 가능
+                row.appendChild(roomCell);
+
+                // 00시부터 23시까지 시간 셀 추가
+                for (let i = 0; i < 24; i++) {
+                    let cell = document.createElement('td');
+                    let reservation = reservations.find(r => r.start_time == i);
+
+                    if (reservation) {
+                        if (reservation.status === '예약요청') {
+                            cell.style.backgroundColor = 'orange';
+                        } else if (reservation.status === '예약완료') {
+                            cell.style.backgroundColor = 'green';
+                        }
+                    } else {
+                        cell.style.backgroundColor = 'white';  // 예약 없음
+                    }
+
+                    // 예약 관련 클릭 이벤트 처리
+                    cell.addEventListener('click', function () {
+                        handleReservationClick(i, reservation);
+                    });
+
+                    row.appendChild(cell);
+                }
+
+                // 테이블에 추가
+                reservationTable.appendChild(row);
+            }
+
+            // 예약 칸을 클릭했을 때 처리하는 함수
+            function handleReservationClick(hour, reservation) {
+                if (reservation) {
+                    if (reservation.user_id === {{ session['user_id'] }}) {
+                        if (confirm('예약을 취소하시겠습니까?')) {
+                            cancelReservation(reservation.id);
+                        }
+                    } else {
+                        alert('다른 사람의 예약 건 입니다.');
+                    }
+                } else {
+                    openReservationDialog(hour);
+                }
+            }
+
+            // 예약 요청 다이얼로그 열기
+            function openReservationDialog(startTime) {
+                let endTime = startTime + 1;
+                if (confirm(`예약하시겠습니까? (${startTime}:00 ~ ${endTime}:00)`)) {
+                    const selectedDate = reservationDateInput.value;
+
+                    fetch('/reservations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'date': selectedDate,
+                            'start_time': startTime,
+                            'end_time': endTime,
+                            'room_id': 1  // room_id는 필요에 따라 지정
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('예약 요청이 완료되었습니다.');
+                            // 새로고침하여 업데이트
+                            checkAvailabilityBtn.click();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error making reservation:', error);
+                        alert('예약 요청 중 오류가 발생했습니다.');
+                    });
+                }
+            }
+
+            // 예약 취소 함수
+            function cancelReservation(reservationId) {
+                fetch(`/reservations/${reservationId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert('예약이 취소되었습니다.');
+                        // 새로고침하여 업데이트
+                        checkAvailabilityBtn.click();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cancelling reservation:', error);
+                    alert('예약 취소 중 오류가 발생했습니다.');
+                });
+            }
         });
     </script>
 </body>
