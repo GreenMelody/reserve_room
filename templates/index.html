@@ -121,7 +121,7 @@
             const toast = new bootstrap.Toast(toastEl);  // 토스트 객체 생성
             let selectedRoom = '';
             let selectedDate = '';
-
+    
             // 조회 버튼 클릭 이벤트 핸들러
             checkAvailabilityBtn.addEventListener('click', function () {
                 selectedDate = reservationDateInput.value;
@@ -130,7 +130,7 @@
                     alert("날짜를 선택해주세요.");
                     return;
                 }
-
+    
                 // 서버에서 예약 현황 및 회의실 정보 가져오기
                 fetch(`/reservations?date=${selectedDate}`)
                     .then(response => response.json())
@@ -146,7 +146,7 @@
                         alert("예약 데이터를 가져오는 중 오류가 발생했습니다.");
                     });
             });
-
+    
             // 테이블 업데이트
             function updateReservationTable(rooms, reservationsByRoom) {
                 reservationTable.innerHTML = '';
@@ -155,13 +155,13 @@
                     let roomCell = document.createElement('td');
                     roomCell.innerText = room.name;
                     row.appendChild(roomCell);
-
+    
                     for (let i = 0; i < 24; i++) {
                         let cell = document.createElement('td');
                         
                         // 해당 회의실의 예약 정보를 확인
                         let reservation = reservationsByRoom[room.id].find(r => r.start_time <= i && r.end_time > i);
-
+    
                         // 예약 상태에 따라 셀의 색상 설정
                         if (reservation) {
                             if (reservation.status === '예약완료') {
@@ -182,39 +182,45 @@
                                 openReservationModal(room.name, i);
                             });
                         }
-
+    
                         row.appendChild(cell);
                     }
                     reservationTable.appendChild(row);
                 });
             }
-
+    
             // 모달 열기
             function openReservationModal(roomName, startTime) {
                 selectedRoom = roomName;
                 modalDate.innerText = selectedDate;
                 modalRoom.innerText = roomName;
-
+    
                 // 시작 시간과 종료 시간 설정
                 populateTimeOptions(startTime);
-
+    
                 // 모달 표시
                 reservationModal.show();  // 모달 표시
-
+    
                 // 예약 버튼 클릭 이벤트 처리
                 reserveButton.onclick = function () {
                     const selectedStartTime = parseInt(startTimeSelect.value);
                     const selectedEndTime = parseInt(endTimeSelect.value);
-                    
+    
+                    // 종료 시간이 시작 시간보다 같거나 이른지 확인
+                    if (selectedEndTime <= selectedStartTime) {
+                        showToast("종료 시간은 시작 시간보다 늦어야 합니다.");
+                        return;  // 예약 요청 중단
+                    }
+    
                     reserveRoom(selectedDate, selectedStartTime, selectedEndTime, selectedRoom);
                 };
             }
-
+    
             // 시간 옵션 설정
             function populateTimeOptions(startTime) {
                 startTimeSelect.innerHTML = '';
                 endTimeSelect.innerHTML = '';
-
+    
                 for (let i = 0; i < 24; i++) {
                     let optionStart = document.createElement('option');
                     optionStart.value = i;
@@ -226,11 +232,11 @@
                     optionEnd.text = `${i.toString().padStart(2, '0')}:00`;
                     endTimeSelect.appendChild(optionEnd);
                 }
-
+    
                 startTimeSelect.value = startTime;
                 endTimeSelect.value = (startTime + 1) % 24;  // 기본적으로 시작시간 + 1시간
             }
-
+    
             // 예약 요청 함수
             function reserveRoom(date, startTime, endTime, roomName) {
                 fetch('/reservations', {
@@ -241,7 +247,7 @@
                     body: new URLSearchParams({
                         'date': date,
                         'start_time': startTime,
-                        'end_time': endTime,
+                        'end_time': end_time,
                         'room_name': roomName
                     })
                 })
@@ -260,7 +266,7 @@
                     alert('예약 요청 중 오류가 발생했습니다.');
                 });
             }
-
+    
             // 예약 취소 함수
             function cancelReservation(reservationId) {
                 fetch(`/reservations/${reservationId}`, {
@@ -280,7 +286,7 @@
                     alert('예약 취소 중 오류가 발생했습니다.');
                 });
             }
-
+    
             // 토스트 메시지 표시 함수
             function showToast(message) {
                 toastEl.querySelector('.toast-body').innerText = message;
