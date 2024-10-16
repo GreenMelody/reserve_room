@@ -28,10 +28,13 @@
             <div class="col-auto">
                 <button id="check-availability" class="btn btn-primary">조회</button>
             </div>
+            <div class="col-auto">
+                <a href="/logout" class="btn btn-danger">로그아웃</a>
+            </div>
         </div>
-
+    
         <div class="mt-4">
-            <table class="table table-bordered text-center">
+            <table class="table table-bordered text-center"> <!-- text-center 클래스를 추가해 표 내용 가운데 정렬 -->
                 <thead>
                     <tr>
                         <th>회의실명</th>
@@ -145,7 +148,7 @@
                             alert(data.error);
                             return;
                         }
-                        updateReservationTable(data.rooms, data.reservations_by_room);
+                        updateReservationTable(data.rooms, data.reservations_by_room, data.current_user_id);
                     })
                     .catch(error => {
                         console.error('Error fetching reservations:', error);
@@ -166,26 +169,31 @@
             });
     
             // 테이블 업데이트
-            function updateReservationTable(rooms, reservationsByRoom) {
+            function updateReservationTable(rooms, reservationsByRoom, currentUserId) {
                 reservationTable.innerHTML = '';
                 rooms.forEach(room => {
                     let row = document.createElement('tr');
                     let roomCell = document.createElement('td');
                     roomCell.innerText = room.name;
                     row.appendChild(roomCell);
-    
+
                     for (let i = 0; i < 24; i++) {
                         let cell = document.createElement('td');
                         
                         // 해당 회의실의 예약 정보를 확인
                         let reservation = reservationsByRoom[room.id].find(r => r.start_time <= i && r.end_time > i);
-    
-                        // 예약 상태에 따라 셀의 색상 설정
+
                         if (reservation) {
-                            if (reservation.status === '예약완료') {
-                                cell.style.backgroundColor = 'green';
-                            } else if (reservation.status === '예약요청') {
-                                cell.style.backgroundColor = 'orange';
+                            // 예약 상태와 사용자 ID에 따라 색상 설정
+                            console.log("currentUserId:"+currentUserId)
+                            if (reservation.user_id === currentUserId) {
+                                if (reservation.status === '예약완료') {
+                                    cell.style.backgroundColor = 'green';  // 나의 예약 완료
+                                } else if (reservation.status === '예약요청') {
+                                    cell.style.backgroundColor = 'orange';  // 나의 예약 요청
+                                }
+                            } else {
+                                cell.style.backgroundColor = 'lightgray';  // 다른 사용자의 예약 (요청, 승인 포함)
                             }
                             // 예약된 칸 클릭 시 취소 옵션 제공
                             cell.addEventListener('click', function () {
@@ -200,13 +208,13 @@
                                 openReservationModal(room.name, i);
                             });
                         }
-    
+
                         row.appendChild(cell);
                     }
                     reservationTable.appendChild(row);
                 });
             }
-    
+
             // 모달 열기
             function openReservationModal(roomName, startTime) {
                 selectedRoom = roomName;

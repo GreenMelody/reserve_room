@@ -70,7 +70,7 @@ def get_reservations():
             WHERE room_id = ? AND date = ?
         ''', (room['id'], selected_date)).fetchall()
 
-        # Row 객체를 딕셔너리로 변환
+        # Row 객체를 딕셔너리로 변환 (user_id 포함)
         reservations_by_room[room['id']] = [dict(reservation) for reservation in reservations]
 
     conn.close()
@@ -78,7 +78,8 @@ def get_reservations():
     # 회의실 리스트와 각 회의실의 예약 데이터를 반환
     return jsonify({
         'rooms': [{'id': room['id'], 'name': room['room_name']} for room in rooms],
-        'reservations_by_room': reservations_by_room
+        'reservations_by_room': reservations_by_room,
+        'current_user_id': session['user_id']  # 현재 로그인한 사용자 ID를 함께 반환
     })
 
 
