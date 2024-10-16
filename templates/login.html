@@ -5,10 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 중앙 상단에 위치하게 함 */
+            background-color: #f7f7f7;
+            padding-top: 60px; /* 상단에 적절한 패딩 추가 */
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        .card-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="mt-5">로그인</h1>
+    <div class="login-card card">
+        <h3 class="card-title">로그인</h3>
         <form method="POST" action="/login">
             <div class="mb-3">
                 <label for="username" class="form-label">아이디</label>
@@ -18,8 +41,12 @@
                 <label for="password" class="form-label">비밀번호</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">로그인</button>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-block">로그인</button>
+            </div>
         </form>
     </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
