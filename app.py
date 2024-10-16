@@ -101,12 +101,16 @@ def create_reservation():
     if room:
         room_id = room['id']
 
-        # 예약 중복 여부 확인
+        # 예약 중복 여부 확인 (겹치는 시간대가 있는지 확인)
         overlapping_reservations = conn.execute('''
             SELECT * FROM reservations
-            WHERE room_id = ? AND date = ? AND 
-                  ((start_time <= ? AND end_time > ?) OR (start_time < ? AND end_time >= ?))
-        ''', (room_id, date, end_time, start_time, start_time, end_time)).fetchall()
+            WHERE room_id = ? AND date = ?
+            AND (
+                (start_time < ? AND end_time > ?) OR  -- 새로운 예약 시작 시간이 기존 예약과 겹치는지 확인
+                (start_time < ? AND end_time > ?) OR  -- 새로운 예약 끝 시간이 기존 예약과 겹치는지 확인
+                (start_time >= ? AND end_time <= ?)   -- 새로운 예약이 기존 예약 내에 완전히 포함되는지 확인
+            )
+        ''', (room_id, date, start_time, start_time, end_time, end_time, start_time, end_time)).fetchall()
 
         if overlapping_reservations:
             return jsonify({'error': '중복된 예약이 있습니다.'})
