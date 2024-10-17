@@ -43,6 +43,22 @@ def create_tables():
                         FOREIGN KEY (room_id) REFERENCES rooms(id)
                     )''')
 
+    # 거절 테이블 생성
+    cursor.execute('''CREATE TABLE IF NOT EXISTS rejected_reservations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        original_reservation_id INTEGER,
+                        user_id INTEGER,  -- 예약한 사람
+                        room_id INTEGER,
+                        date TEXT NOT NULL,
+                        start_time INTEGER NOT NULL,
+                        end_time INTEGER NOT NULL,
+                        rejected_by_user_id INTEGER,  -- 거절한 사람
+                        rejected_at DATETIME DEFAULT CURRENT_TIMESTAMP,  -- 거절 시간
+                        FOREIGN KEY (user_id) REFERENCES users(id),
+                        FOREIGN KEY (room_id) REFERENCES rooms(id),
+                        FOREIGN KEY (rejected_by_user_id) REFERENCES users(id)
+                    )''')
+
     # 관리자 계정 추가
     add_admin_user(cursor)
 
