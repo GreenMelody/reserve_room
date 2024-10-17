@@ -242,8 +242,6 @@
                                     cell.style.backgroundColor = 'orange';  // 나의 예약 요청
                                 } else if (reservation.status === '예약완료') {
                                     cell.style.backgroundColor = 'green';   // 나의 예약 완료
-                                } else if (reservation.status === '거절됨') {
-                                    cell.style.backgroundColor = 'red';   // 나의 예약 거절됨
                                 }
 
                                 if (currentUserRole === '승인자' || currentUserRole === '관리자') {
