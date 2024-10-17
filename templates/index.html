@@ -100,7 +100,12 @@
                 <div class="modal-body">
                     <p><strong>회의실명:</strong> <span id="modal-room"></span></p>
                     <p><strong>예약 날짜:</strong> <span id="modal-date"></span></p>
-                    <p><strong>시작 시간:</strong> <span id="modal-start-time"></span></p>
+                    <div class="mb-3">
+                        <label for="start-time">시작 시간:</label>
+                        <select id="start-time" class="form-select">
+                            <!-- 시작 시간 옵션 -->
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label for="end-time">종료 시간:</label>
                         <select id="end-time" class="form-select">
@@ -135,7 +140,7 @@
             const endDateInput = document.getElementById('end-date');
             const modalDate = document.getElementById('modal-date');
             const modalRoom = document.getElementById('modal-room');
-            const modalStartTime = document.getElementById('modal-start-time');
+            const startTimeSelect = document.getElementById('start-time');
             const endTimeSelect = document.getElementById('end-time');
             const reserveButton = document.getElementById('reserve-button');
             const reservationModal = new bootstrap.Modal(document.getElementById('reservationModal'));
@@ -256,26 +261,42 @@
                 const roomName = roomSelect.options[roomSelect.selectedIndex].text;
                 modalRoom.textContent = roomName;
                 modalDate.textContent = date;
-                modalStartTime.textContent = startTime;
-                populateEndTimeOptions(startTime);
+                populateStartTimeOptions(startTime);
                 reservationModal.show();
             }
 
-            // 종료 시간 옵션 설정
+            // 시작 시간 및 종료 시간 옵션 설정
+            function populateStartTimeOptions(startTime) {
+                startTimeSelect.innerHTML = '';
+                for (let i = 0; i <= 23; i++) {
+                    const optionStart = document.createElement('option');
+                    optionStart.value = i;
+                    optionStart.textContent = `${i}:00`;
+                    startTimeSelect.appendChild(optionStart);
+                }
+
+                startTimeSelect.value = startTime;
+                populateEndTimeOptions(startTime);  // 시작 시간이 선택되면 종료 시간 옵션도 업데이트
+            }
+
             function populateEndTimeOptions(startTime) {
                 endTimeSelect.innerHTML = '';
-                for (let i = startTime + 1; i <= Math.min(startTime + 4, 24); i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = `${i}:00`;
-                    endTimeSelect.appendChild(option);
+                for (let i = startTime + 1; i <= 24; i++) {  // 종료 시간을 00:00부터 24:00까지 설정
+                    const optionEnd = document.createElement('option');
+                    optionEnd.value = i;
+                    optionEnd.textContent = `${i}:00`;
+                    endTimeSelect.appendChild(optionEnd);
                 }
             }
+
+            startTimeSelect.addEventListener('change', function () {
+                populateEndTimeOptions(parseInt(startTimeSelect.value));  // 시작 시간이 변경되면 종료 시간 옵션도 업데이트
+            });
 
             reserveButton.addEventListener('click', function () {
                 const roomName = roomSelect.options[roomSelect.selectedIndex].text;
                 const date = modalDate.textContent;
-                const startTime = modalStartTime.textContent;
+                const startTime = startTimeSelect.value;
                 const endTime = endTimeSelect.value;
 
                 fetch('/reservations', {
