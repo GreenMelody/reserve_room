@@ -39,6 +39,7 @@ def create_tables():
                         start_time INTEGER NOT NULL,
                         end_time INTEGER NOT NULL,
                         status TEXT NOT NULL,
+                        requested_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 요청 시간
                         FOREIGN KEY (user_id) REFERENCES users(id),
                         FOREIGN KEY (room_id) REFERENCES rooms(id)
                     )''')
@@ -60,7 +61,7 @@ def create_tables():
                     )''')
 
     # 승인 테이블 생성
-    cursor.execute('''CREATE TABLE approved_reservations (
+    cursor.execute('''CREATE TABLE IF NOT EXISTS approved_reservations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         original_reservation_id INTEGER,
                         user_id INTEGER,  -- 예약한 사람
