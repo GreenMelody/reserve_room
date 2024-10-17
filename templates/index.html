@@ -19,11 +19,22 @@
     <div class="container">
         <h1 class="mt-5">회의실 예약 시스템</h1>
         <div class="row mt-4">
-            <div class="col-auto d-flex align-items-center" style="height: 38px;">
-                <label for="reservation-date" class="form-label mb-0" style="line-height: 1.5;">예약일:</label>
-            </div>
+            <!-- 회의실 선택 -->
             <div class="col-auto">
-                <input type="date" id="reservation-date" class="form-control" />
+                <label for="room-select" class="form-label">회의실:</label>
+                <select id="room-select" class="form-select">
+                    <!-- 서버에서 회의실 리스트를 가져와서 동적으로 채움 -->
+                </select>
+            </div>
+            <!-- 시작 날짜 선택 -->
+            <div class="col-auto">
+                <label for="start-date" class="form-label">시작 날짜:</label>
+                <input type="date" id="start-date" class="form-control">
+            </div>
+            <!-- 종료 날짜 선택 -->
+            <div class="col-auto">
+                <label for="end-date" class="form-label">종료 날짜:</label>
+                <input type="date" id="end-date" class="form-control">
             </div>
             <div class="col-auto">
                 <button id="check-availability" class="btn btn-primary">조회</button>
@@ -32,13 +43,13 @@
                 <a href="/logout" class="btn btn-danger">로그아웃</a>
             </div>
         </div>
-    
+
         <div class="mt-4">
-            <table class="table table-bordered text-center"> <!-- text-center 클래스를 추가해 표 내용 가운데 정렬 -->
+            <!-- 예약 현황 표 -->
+            <table class="table table-bordered text-center">
                 <thead>
                     <tr>
-                        <th>회의실명</th>
-                        <!-- 00부터 23까지 시간을 헤더로 표시 -->
+                        <th>날짜</th>
                         <th>00</th>
                         <th>01</th>
                         <th>02</th>
@@ -66,7 +77,7 @@
                     </tr>
                 </thead>
                 <tbody id="reservation-table">
-                    <!-- 예약현황 표 내용이 여기에 표시됩니다. -->
+                    <!-- 예약 현황이 여기에 표시됩니다. -->
                 </tbody>
             </table>
         </div>
@@ -81,18 +92,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p><strong>날짜:</strong> <span id="modal-date"></span></p>
                     <p><strong>회의실명:</strong> <span id="modal-room"></span></p>
+                    <p><strong>예약 날짜:</strong> <span id="modal-date"></span></p>
+                    <p><strong>시작 시간:</strong> <span id="modal-start-time"></span></p>
                     <div class="mb-3">
-                        <label for="start-time">시작시간:</label>
-                        <select id="start-time" class="form-select">
-                            <!-- 시간 옵션이 동적으로 생성됩니다 -->
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="end-time">종료시간:</label>
+                        <label for="end-time">종료 시간:</label>
                         <select id="end-time" class="form-select">
-                            <!-- 시간 옵션이 동적으로 생성됩니다 -->
+                            <!-- 종료 시간 옵션 -->
                         </select>
                     </div>
                 </div>
@@ -118,214 +124,193 @@
         document.addEventListener('DOMContentLoaded', function () {
             const checkAvailabilityBtn = document.getElementById('check-availability');
             const reservationTable = document.getElementById('reservation-table');
-            const reservationDateInput = document.getElementById('reservation-date');
+            const roomSelect = document.getElementById('room-select');
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
             const modalDate = document.getElementById('modal-date');
             const modalRoom = document.getElementById('modal-room');
-            const startTimeSelect = document.getElementById('start-time');
+            const modalStartTime = document.getElementById('modal-start-time');
             const endTimeSelect = document.getElementById('end-time');
             const reserveButton = document.getElementById('reserve-button');
-            const reservationModal = new bootstrap.Modal(document.getElementById('reservationModal'));  // 모달 객체 생성
+            const reservationModal = new bootstrap.Modal(document.getElementById('reservationModal'));
             const toastEl = document.getElementById('toast');
-            const toast = new bootstrap.Toast(toastEl);  // 토스트 객체 생성
-            let selectedRoom = '';
-            let selectedDate = '';
-    
-            // 페이지 로드 시 현재 날짜로 설정하고 예약 현황 조회
-            function setTodayAndFetchReservations() {
-                const today = new Date().toISOString().split('T')[0];  // YYYY-MM-DD 형식으로 오늘 날짜 가져오기
-                reservationDateInput.value = today;  // 입력 필드에 오늘 날짜 설정
-                selectedDate = today;  // selectedDate를 오늘 날짜로 설정
-                fetchReservations(selectedDate);  // 예약 현황 조회
+            const toast = new bootstrap.Toast(toastEl);
+            let currentUserId = null;
+
+            function setDefaultDates() {
+                const today = new Date().toISOString().split('T')[0];
+                const thirtyDaysLater = new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0];
+                startDateInput.value = today;
+                endDateInput.value = thirtyDaysLater;
             }
-    
+
+            // 회의실 리스트 불러오기
+            function fetchRooms() {
+                fetch('/rooms')
+                    .then(response => response.json())
+                    .then(data => {
+                        data.rooms.forEach(room => {
+                            const option = document.createElement('option');
+                            option.value = room.id;
+                            option.textContent = room.room_name;
+                            roomSelect.appendChild(option);
+                        });
+                        // 첫 번째 회의실로 자동 조회
+                        fetchReservations();
+                    });
+            }
+
             // 예약 현황 조회 함수
-            function fetchReservations(date) {
-                // 서버에서 예약 현황 및 회의실 정보 가져오기
-                fetch(`/reservations?date=${date}`)
+            function fetchReservations() {
+                const roomId = roomSelect.value;
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+
+                fetch(`/reservations?room_id=${roomId}&start_date=${startDate}&end_date=${endDate}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.error) {
                             alert(data.error);
                             return;
                         }
-                        updateReservationTable(data.rooms, data.reservations_by_room, data.current_user_id);
+                        currentUserId = data.current_user_id;
+                        updateReservationTable(data.reservations, startDate, endDate);
                     })
                     .catch(error => {
                         console.error('Error fetching reservations:', error);
                         alert("예약 데이터를 가져오는 중 오류가 발생했습니다.");
                     });
             }
-    
-            // 조회 버튼 클릭 이벤트 핸들러
-            checkAvailabilityBtn.addEventListener('click', function () {
-                selectedDate = reservationDateInput.value;
-                
-                if (!selectedDate) {
-                    alert("날짜를 선택해주세요.");
-                    return;
-                }
-    
-                fetchReservations(selectedDate);  // 선택한 날짜로 예약 현황 조회
-            });
-    
+
             // 테이블 업데이트
-            function updateReservationTable(rooms, reservationsByRoom, currentUserId) {
+            function updateReservationTable(reservations, startDate, endDate) {
                 reservationTable.innerHTML = '';
-                rooms.forEach(room => {
-                    let row = document.createElement('tr');
-                    let roomCell = document.createElement('td');
-                    roomCell.innerText = room.name;
-                    row.appendChild(roomCell);
+                let currentDate = new Date(startDate);
+                const end = new Date(endDate);
+
+                while (currentDate <= end) {
+                    const row = document.createElement('tr');
+                    const dateCell = document.createElement('td');
+                    dateCell.textContent = currentDate.toISOString().split('T')[0];
+                    row.appendChild(dateCell);
 
                     for (let i = 0; i < 24; i++) {
-                        let cell = document.createElement('td');
-                        
-                        // 해당 회의실의 예약 정보를 확인
-                        let reservation = reservationsByRoom[room.id].find(r => r.start_time <= i && r.end_time > i);
+                        const cell = document.createElement('td');
+                        const reservation = reservations.find(r => r.date === dateCell.textContent && r.start_time <= i && r.end_time > i);
 
                         if (reservation) {
-                            // 예약 상태와 사용자 ID에 따라 색상 설정
-                            console.log("currentUserId:"+currentUserId)
                             if (reservation.user_id === currentUserId) {
-                                if (reservation.status === '예약완료') {
-                                    cell.style.backgroundColor = 'green';  // 나의 예약 완료
-                                } else if (reservation.status === '예약요청') {
+                                if (reservation.status === '예약요청') {
                                     cell.style.backgroundColor = 'orange';  // 나의 예약 요청
+                                } else if (reservation.status === '예약완료') {
+                                    cell.style.backgroundColor = 'green';   // 나의 예약 완료
                                 }
+                                cell.addEventListener('click', function () {
+                                    if (confirm('예약을 취소하시겠습니까?')) {
+                                        cancelReservation(reservation.id);
+                                    }
+                                });
                             } else {
-                                cell.style.backgroundColor = 'lightgray';  // 다른 사용자의 예약 (요청, 승인 포함)
+                                cell.style.backgroundColor = 'lightgray'; // 다른 사용자의 예약
                             }
-                            // 예약된 칸 클릭 시 취소 옵션 제공
-                            cell.addEventListener('click', function () {
-                                if (confirm('예약을 취소하시겠습니까?')) {
-                                    cancelReservation(reservation.id);
-                                }
-                            });
                         } else {
                             cell.style.backgroundColor = 'white';  // 예약 없음
-                            // 빈 칸을 클릭하면 예약 요청 모달을 열기
                             cell.addEventListener('click', function () {
-                                openReservationModal(room.name, i);
+                                openReservationModal(dateCell.textContent, i);
                             });
                         }
-
                         row.appendChild(cell);
                     }
+
                     reservationTable.appendChild(row);
-                });
-            }
-
-            // 모달 열기
-            function openReservationModal(roomName, startTime) {
-                selectedRoom = roomName;
-                modalDate.innerText = selectedDate;
-                modalRoom.innerText = roomName;
-    
-                // 시작 시간과 종료 시간 설정
-                populateTimeOptions(startTime);
-    
-                // 모달 표시
-                reservationModal.show();  // 모달 표시
-    
-                // 예약 버튼 클릭 이벤트 처리
-                reserveButton.onclick = function () {
-                    const selectedStartTime = parseInt(startTimeSelect.value);
-                    const selectedEndTime = parseInt(endTimeSelect.value);
-    
-                    // 종료 시간이 시작 시간보다 같거나 이른지 확인
-                    if (selectedEndTime <= selectedStartTime) {
-                        showToast("종료 시간은 시작 시간보다 늦어야 합니다.");
-                        return;  // 예약 요청 중단
-                    }
-    
-                    reserveRoom(selectedDate, selectedStartTime, selectedEndTime, selectedRoom);
-                };
-            }
-    
-            // 시간 옵션 설정
-            function populateTimeOptions(startTime) {
-                startTimeSelect.innerHTML = '';
-                endTimeSelect.innerHTML = '';
-
-                for (let i = 0; i < 24; i++) {
-                    let optionStart = document.createElement('option');
-                    optionStart.value = i;
-                    optionStart.text = `${i.toString().padStart(2, '0')}:00`;
-                    startTimeSelect.appendChild(optionStart);
-
-                    let optionEnd = document.createElement('option');
-                    optionEnd.value = i;
-                    optionEnd.text = `${i.toString().padStart(2, '0')}:00`;
-                    endTimeSelect.appendChild(optionEnd);
+                    currentDate.setDate(currentDate.getDate() + 1);
                 }
-
-                // 24시를 종료시간에 추가
-                let optionEnd24 = document.createElement('option');
-                optionEnd24.value = 24;  // 종료 시간을 24로 설정
-                optionEnd24.text = "24:00";  // 표시만 24:00
-                endTimeSelect.appendChild(optionEnd24);
-
-                startTimeSelect.value = startTime;
-                endTimeSelect.value = (startTime + 1) % 24;  // 기본적으로 시작시간 + 1시간
             }
-            // 예약 요청 함수
-            function reserveRoom(date, startTime, endTime, roomName) {
+
+            // 예약 취소 함수
+            function cancelReservation(reservationId) {
+                fetch(`/reservations/${reservationId}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('예약이 취소되었습니다.');
+                            fetchReservations();  // 예약 취소 후 다시 조회
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error cancelling reservation:', error);
+                        alert('예약 취소 중 오류가 발생했습니다.');
+                    });
+            }
+
+            // 예약 모달 설정
+            function openReservationModal(date, startTime) {
+                const roomName = roomSelect.options[roomSelect.selectedIndex].text;
+                modalRoom.textContent = roomName;
+                modalDate.textContent = date;
+                modalStartTime.textContent = startTime;
+                populateEndTimeOptions(startTime);
+                reservationModal.show();
+            }
+
+            // 종료 시간 옵션 설정
+            function populateEndTimeOptions(startTime) {
+                endTimeSelect.innerHTML = '';
+                for (let i = startTime + 1; i <= Math.min(startTime + 4, 24); i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `${i}:00`;
+                    endTimeSelect.appendChild(option);
+                }
+            }
+
+            reserveButton.addEventListener('click', function () {
+                const roomName = roomSelect.options[roomSelect.selectedIndex].text;
+                const date = modalDate.textContent;
+                const startTime = modalStartTime.textContent;
+                const endTime = endTimeSelect.value;
+
                 fetch('/reservations', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: new URLSearchParams({
+                        'room_name': roomName,
                         'date': date,
                         'start_time': startTime,
-                        'end_time': endTime,
-                        'room_name': roomName
+                        'end_time': endTime
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        showToast("중복된 예약이 있습니다.");
+                        showToast('중복된 예약이 있습니다.');
                     } else {
-                        alert('예약 요청이 완료되었습니다.');
-                        reservationModal.hide();  // 예약 완료 후 모달 닫기
-                        fetchReservations(selectedDate);  // 예약 후 테이블 다시 조회
+                        alert('예약이 완료되었습니다.');
+                        reservationModal.hide();
+                        fetchReservations();
                     }
                 })
                 .catch(error => {
                     console.error('Error making reservation:', error);
-                    alert('예약 요청 중 오류가 발생했습니다.');
+                    alert('예약 중 오류가 발생했습니다.');
                 });
-            }
-    
-            // 예약 취소 함수
-            function cancelReservation(reservationId) {
-                fetch(`/reservations/${reservationId}`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                    } else {
-                        alert('예약이 취소되었습니다.');
-                        fetchReservations(selectedDate);  // 예약 취소 후 테이블 다시 조회
-                    }
-                })
-                .catch(error => {
-                    console.error('Error cancelling reservation:', error);
-                    alert('예약 취소 중 오류가 발생했습니다.');
-                });
-            }
-    
-            // 토스트 메시지 표시 함수
+            });
+
+            // Toast 메시지 표시
             function showToast(message) {
-                toastEl.querySelector('.toast-body').innerText = message;
-                toast.show();  // 토스트 표시
+                toastEl.querySelector('.toast-body').textContent = message;
+                toast.show();
             }
-    
-            // 페이지 로드 시 실행
-            setTodayAndFetchReservations();  // 현재 날짜 설정 후 예약 현황 조회
+
+            // 초기 설정
+            setDefaultDates();
+            fetchRooms();
+            
+            checkAvailabilityBtn.addEventListener('click', fetchReservations);
         });
     </script>
 

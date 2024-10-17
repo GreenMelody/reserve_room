@@ -60,36 +60,30 @@ def index():
 # 예약 현황 조회 API
 @app.route('/reservations', methods=['GET'])
 def get_reservations():
-    selected_date = request.args.get('date')
+    room_id = request.args.get('room_id')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
 
-    if not selected_date:
-        return jsonify({'error': '날짜가 지정되지 않았습니다.'}), 400
+    if not room_id or not start_date or not end_date:
+        return jsonify({'error': '회의실과 날짜 범위가 지정되지 않았습니다.'}), 400
 
     conn = get_db_connection()
 
-    # 모든 회의실 리스트 가져오기
-    rooms = conn.execute('SELECT * FROM rooms').fetchall()
-
-    # 예약 데이터를 회의실별로 가져오기
-    reservations_by_room = {}
-    for room in rooms:
-        reservations = conn.execute('''
-            SELECT * FROM reservations 
-            WHERE room_id = ? AND date = ?
-        ''', (room['id'], selected_date)).fetchall()
-
-        # Row 객체를 딕셔너리로 변환 (user_id 포함)
-        reservations_by_room[room['id']] = [dict(reservation) for reservation in reservations]
+    # 선택한 회의실의 예약 현황을 날짜 범위 내에서 가져오기
+    reservations = conn.execute('''
+        SELECT * FROM reservations 
+        WHERE room_id = ? AND date BETWEEN ? AND ?
+    ''', (room_id, start_date, end_date)).fetchall()
 
     conn.close()
 
-    # 회의실 리스트와 각 회의실의 예약 데이터를 반환
+    # 선택한 회의실의 예약 데이터를 반환
     return jsonify({
-        'rooms': [{'id': room['id'], 'name': room['room_name']} for room in rooms],
-        'reservations_by_room': reservations_by_room,
-        'current_user_id': session['user_id']  # 현재 로그인한 사용자 ID를 함께 반환
+        'reservations': [dict(reservation) for reservation in reservations],
+        'room_id': room_id,
+        'start_date': start_date,
+        'end_date': end_date
     })
-
 
 # 예약 요청 처리
 @app.route('/reservations', methods=['POST'])
@@ -204,6 +198,18 @@ def manage_rooms():
     conn.close()
 
     return render_template('manage-room.html', rooms=rooms)
+
+# 회의실 리스트를 반환하는 API
+@app.route('/rooms', methods=['GET'])
+def get_rooms():
+    conn = get_db_connection()
+    rooms = conn.execute('SELECT * FROM rooms').fetchall()
+    conn.close()
+
+    # 회의실 리스트를 JSON으로 반환
+    return jsonify({
+        'rooms': [{'id': room['id'], 'room_name': room['room_name']} for room in rooms]
+    })
 
 # 회의실 생성 API (관리자 전용)
 @app.route('/rooms', methods=['POST'])
