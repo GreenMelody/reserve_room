@@ -121,6 +121,26 @@
         </div>
     </div>
 
+    <!-- 관리자/승인자 예약 관리 모달 -->
+    <div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminModalLabel">예약 관리</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>이 예약을 어떻게 처리하시겠습니까?</p>
+                    <div id="admin-modal-buttons">
+                        <button type="button" class="btn btn-warning" id="admin-cancel-btn">예약 취소</button>
+                        <button type="button" class="btn btn-success" id="admin-approve-btn">예약 승인</button>
+                        <button type="button" class="btn btn-danger" id="admin-reject-btn">예약 거절</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast 메시지 -->
     <div id="toast" class="toast align-items-center text-bg-danger border-0 toast-position" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
@@ -146,15 +166,21 @@
             const reservationModal = new bootstrap.Modal(document.getElementById('reservationModal'));
             const toastEl = document.getElementById('toast');
             const toast = new bootstrap.Toast(toastEl);
+            const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
+            const adminCancelBtn = document.getElementById('admin-cancel-btn');
+            const adminApproveBtn = document.getElementById('admin-approve-btn');
+            const adminRejectBtn = document.getElementById('admin-reject-btn');
             let currentUserId = null;
-
+            let currentUserRole = null;
+            let selectedReservationId = null;
+    
             function setDefaultDates() {
                 const today = new Date().toISOString().split('T')[0];
                 const thirtyDaysLater = new Date(new Date().setDate(new Date().getDate() + 15)).toISOString().split('T')[0];
                 startDateInput.value = today;
                 endDateInput.value = thirtyDaysLater;
             }
-
+    
             // 회의실 리스트 불러오기
             function fetchRooms() {
                 fetch('/rooms')
@@ -185,6 +211,7 @@
                             return;
                         }
                         currentUserId = data.current_user_id;
+                        currentUserRole = data.current_user_role;
                         updateReservationTable(data.reservations, startDate, endDate);
                     })
                     .catch(error => {
@@ -215,13 +242,27 @@
                                     cell.style.backgroundColor = 'orange';  // 나의 예약 요청
                                 } else if (reservation.status === '예약완료') {
                                     cell.style.backgroundColor = 'green';   // 나의 예약 완료
+                                } else if (reservation.status === '거절됨') {
+                                    cell.style.backgroundColor = 'red';   // 나의 예약 거절됨
                                 }
-                                cell.addEventListener('click', function () {
-                                    if (confirm('예약을 취소하시겠습니까?')) {
-                                        cancelReservation(reservation.id);
-                                    }
-                                });
+
+                                if (currentUserRole === '승인자' || currentUserRole === '관리자') {
+                                    cell.addEventListener('click', function () {
+                                        openAdminReservationModal(reservation.id);
+                                    });
+                                } else {
+                                    cell.addEventListener('click', function () {
+                                        if (confirm('예약을 취소하시겠습니까?')) {
+                                            cancelReservation(reservation.id);
+                                        }
+                                    });
+                                }
                             } else {
+                                if (currentUserRole === '승인자' || currentUserRole === '관리자') {
+                                    cell.addEventListener('click', function () {
+                                        openApprovalModal(reservation.id);
+                                    });
+                                }
                                 cell.style.backgroundColor = 'lightgray'; // 다른 사용자의 예약
                             }
                         } else {
@@ -247,7 +288,7 @@
                             alert(data.error);
                         } else {
                             alert('예약이 취소되었습니다.');
-                            fetchReservations();  // 예약 취소 후 다시 조회
+                            fetchReservations();
                         }
                     })
                     .catch(error => {
@@ -333,13 +374,101 @@
                 toast.show();
             }
 
+            // 관리자 또는 승인자 모달 설정
+            function openAdminReservationModal(reservationId) {
+                selectedReservationId = reservationId;
+                adminModal.show();
+            }
+
+            // 승인자나 관리자가 다른 사용자의 예약을 승인 또는 거절할 때
+            function openApprovalModal(reservationId) {
+                selectedReservationId = reservationId;
+                adminApproveBtn.style.display = 'inline-block';
+                adminRejectBtn.style.display = 'inline-block';
+                adminCancelBtn.style.display = 'none'; // 다른 사람의 예약은 취소 불가
+                adminModal.show();
+            }
+
+            // 예약 승인 함수
+            adminApproveBtn.addEventListener('click', function () {
+                approveReservation(selectedReservationId);
+            });
+
+            // 예약 거절 함수
+            adminRejectBtn.addEventListener('click', function () {
+                rejectReservation(selectedReservationId);
+            });
+
+            // 예약 취소 함수
+            adminCancelBtn.addEventListener('click', function () {
+                cancelReservation(selectedReservationId);
+            });
+
+            // 예약 승인 처리
+            function approveReservation(reservationId) {
+                fetch(`/reservations/${reservationId}/approve`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('예약이 승인되었습니다.');
+                            fetchReservations();
+                            adminModal.hide();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error approving reservation:', error);
+                        alert('예약 승인 중 오류가 발생했습니다.');
+                    });
+            }
+
+            // 예약 거절 처리
+            function rejectReservation(reservationId) {
+                fetch(`/reservations/${reservationId}/reject`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('예약이 거절되었습니다.');
+                            fetchReservations();
+                            adminModal.hide();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error rejecting reservation:', error);
+                        alert('예약 거절 중 오류가 발생했습니다.');
+                    });
+            }
+
+            // 예약 취소 처리
+            function cancelReservation(reservationId) {
+                fetch(`/reservations/${reservationId}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('예약이 취소되었습니다.');
+                            fetchReservations();
+                            adminModal.hide();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error cancelling reservation:', error);
+                        alert('예약 취소 중 오류가 발생했습니다.');
+                    });
+            }
+
             // 초기 설정
             setDefaultDates();
             fetchRooms();
-            
+    
             checkAvailabilityBtn.addEventListener('click', fetchReservations);
         });
     </script>
+    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

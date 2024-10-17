@@ -83,7 +83,8 @@ def get_reservations():
         'room_id': room_id,
         'start_date': start_date,
         'end_date': end_date,
-        'current_user_id': session.get('user_id') 
+        'current_user_id': session.get('user_id'),
+        'current_user_role': session.get('role')  # 사용자의 역할(role) 정보 추가
     })
 
 # 예약 요청 처리
@@ -150,6 +151,45 @@ def delete_reservation(id):
     conn.close()
 
     return jsonify({'message': '예약이 취소되었습니다.'})
+
+# 예약 승인 처리 API
+@app.route('/reservations/<int:id>/approve', methods=['POST'])
+def approve_reservation(id):
+    if 'role' not in session or session['role'] not in ['승인자', '관리자']:
+        return jsonify({'error': '승인 권한이 없습니다.'}), 403
+
+    conn = get_db_connection()
+    reservation = conn.execute('SELECT * FROM reservations WHERE id = ?', (id,)).fetchone()
+
+    if not reservation:
+        return jsonify({'error': '해당 예약이 존재하지 않습니다.'}), 404
+
+    # 예약 상태를 '예약완료'로 업데이트
+    conn.execute('UPDATE reservations SET status = ? WHERE id = ?', ('예약완료', id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': '예약이 승인되었습니다.'})
+
+
+# 예약 거절 처리 API
+@app.route('/reservations/<int:id>/reject', methods=['POST'])
+def reject_reservation(id):
+    if 'role' not in session or session['role'] not in ['승인자', '관리자']:
+        return jsonify({'error': '거절 권한이 없습니다.'}), 403
+
+    conn = get_db_connection()
+    reservation = conn.execute('SELECT * FROM reservations WHERE id = ?', (id,)).fetchone()
+
+    if not reservation:
+        return jsonify({'error': '해당 예약이 존재하지 않습니다.'}), 404
+
+    # 예약 상태를 '거절됨'으로 업데이트
+    conn.execute('UPDATE reservations SET status = ? WHERE id = ?', ('거절됨', id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': '예약이 거절되었습니다.'})
 
 # 사용자 관리 페이지 (관리자 전용)
 @app.route('/manage-users')
