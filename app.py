@@ -98,6 +98,7 @@ def create_reservation():
     end_time = int(request.form['end_time'])
     room_name = request.form['room_name']
     user_id = session['user_id']  # 현재 로그인한 사용자의 user_id 가져오기
+    requested_at = datetime.now()  # 현재 시간 저장
 
     conn = get_db_connection()
     room = conn.execute('SELECT id FROM rooms WHERE room_name = ?', (room_name,)).fetchone()
@@ -119,11 +120,11 @@ def create_reservation():
         if overlapping_reservations:
             return jsonify({'error': '중복된 예약이 있습니다.'})
 
-        # 예약 생성 (user_id 추가)
+        # 예약 생성 (user_id 및 requested_at 추가)
         conn.execute('''
-            INSERT INTO reservations (user_id, room_id, date, start_time, end_time, status)
-            VALUES (?, ?, ?, ?, ?, '예약요청')
-        ''', (user_id, room_id, date, start_time, end_time))
+            INSERT INTO reservations (user_id, room_id, date, start_time, end_time, status, requested_at)
+            VALUES (?, ?, ?, ?, ?, '예약요청', ?)
+        ''', (user_id, room_id, date, start_time, end_time, requested_at))
         conn.commit()
         conn.close()
 
