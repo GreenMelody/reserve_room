@@ -164,8 +164,17 @@ def approve_reservation(id):
     if not reservation:
         return jsonify({'error': '해당 예약이 존재하지 않습니다.'}), 404
 
+    # 승인한 사람 (현재 로그인한 사용자)
+    approved_by_user_id = session['user_id']
+
+    # 승인된 예약을 approved_reservations 테이블에 저장
+    conn.execute('''
+        INSERT INTO approved_reservations (original_reservation_id, user_id, room_id, date, start_time, end_time, approved_by_user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (id, reservation['user_id'], reservation['room_id'], reservation['date'], reservation['start_time'], reservation['end_time'], approved_by_user_id))
+
     # 예약 상태를 '예약완료'로 업데이트
-    conn.execute('UPDATE reservations SET status = ? WHERE id = ?', ('예약완료', id))
+    conn.execute('UPDATE reservations SET status = "예약완료" WHERE id = ?', (id,))
     conn.commit()
     conn.close()
 
