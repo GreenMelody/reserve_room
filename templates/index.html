@@ -17,23 +17,29 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="mt-5">회의실 예약 시스템</h1>
-        <div class="row mt-4">
+        <h1 class="my-5">회의실 예약 시스템</h1>
+        <div class="row mx-1">
             <!-- 회의실 선택 -->
-            <div class="col-auto">
+            <div class="col-auto px-1 d-flex align-items-center" style="height: 48px;">
                 <label for="room-select" class="form-label">회의실:</label>
+            </div>
+            <div class="col-auto px-1">
                 <select id="room-select" class="form-select">
                     <!-- 서버에서 회의실 리스트를 가져와서 동적으로 채움 -->
                 </select>
             </div>
             <!-- 시작 날짜 선택 -->
-            <div class="col-auto">
+            <div class="col-auto px-1 d-flex align-items-center" style="height: 48px;">
                 <label for="start-date" class="form-label">시작 날짜:</label>
+            </div>
+            <div class="col-auto px-1">
                 <input type="date" id="start-date" class="form-control">
             </div>
             <!-- 종료 날짜 선택 -->
-            <div class="col-auto">
+            <div class="col-auto px-1 d-flex align-items-center" style="height: 48px;">
                 <label for="end-date" class="form-label">종료 날짜:</label>
+            </div>
+            <div class="col-auto px-1">
                 <input type="date" id="end-date" class="form-control">
             </div>
             <div class="col-auto">
@@ -44,7 +50,7 @@
             </div>
         </div>
 
-        <div class="mt-4">
+        <div class="my-2">
             <!-- 예약 현황 표 -->
             <table class="table table-bordered text-center">
                 <thead>
