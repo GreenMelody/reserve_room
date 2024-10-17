@@ -82,7 +82,8 @@ def get_reservations():
         'reservations': [dict(reservation) for reservation in reservations],
         'room_id': room_id,
         'start_date': start_date,
-        'end_date': end_date
+        'end_date': end_date,
+        'current_user_id': session.get('user_id') 
     })
 
 # 예약 요청 처리

@@ -139,7 +139,7 @@
 
             function setDefaultDates() {
                 const today = new Date().toISOString().split('T')[0];
-                const thirtyDaysLater = new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0];
+                const thirtyDaysLater = new Date(new Date().setDate(new Date().getDate() + 15)).toISOString().split('T')[0];
                 startDateInput.value = today;
                 endDateInput.value = thirtyDaysLater;
             }
