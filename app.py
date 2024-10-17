@@ -69,15 +69,15 @@ def get_reservations():
 
     conn = get_db_connection()
 
-    # 선택한 회의실의 예약 현황을 날짜 범위 내에서 가져오기
+    # 선택한 회의실의 예약 현황을 날짜 범위 내에서 가져오기 (상태가 '거절됨'인 예약은 제외)
     reservations = conn.execute('''
         SELECT * FROM reservations 
         WHERE room_id = ? AND date BETWEEN ? AND ?
+        AND status != '거절됨'
     ''', (room_id, start_date, end_date)).fetchall()
 
     conn.close()
 
-    # 선택한 회의실의 예약 데이터를 반환
     return jsonify({
         'reservations': [dict(reservation) for reservation in reservations],
         'room_id': room_id,
@@ -184,8 +184,17 @@ def reject_reservation(id):
     if not reservation:
         return jsonify({'error': '해당 예약이 존재하지 않습니다.'}), 404
 
-    # 예약 상태를 '거절됨'으로 업데이트
-    conn.execute('UPDATE reservations SET status = ? WHERE id = ?', ('거절됨', id))
+    # 거절한 사람 (현재 로그인한 사용자)
+    rejected_by_user_id = session['user_id']
+
+    # 거절된 예약을 rejected_reservations 테이블에 저장
+    conn.execute('''
+        INSERT INTO rejected_reservations (original_reservation_id, user_id, room_id, date, start_time, end_time, rejected_by_user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (id, reservation['user_id'], reservation['room_id'], reservation['date'], reservation['start_time'], reservation['end_time'], rejected_by_user_id))
+
+    # 예약 삭제 처리 (거절된 예약은 DB에서 삭제)
+    conn.execute('DELETE FROM reservations WHERE id = ?', (id,))
     conn.commit()
     conn.close()
 
