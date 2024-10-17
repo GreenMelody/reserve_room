@@ -1,15 +1,23 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
+import os
 import sqlite3
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
-import uuid
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+
+dotenv_path = os.path.abspath(os.path.join('sharedworkspace/','.env'))
+load_dotenv(dotenv_path)
+
+app_db_path = os.getenv('DB_PATH')
+app_db_file = os.getenv('DB_FILE')
+app_db_file_path = os.path.join(app_db_path, app_db_file)
 
 app = Flask(__name__)
-app.secret_key = 'reserve'
+app.secret_key = os.getenv('SECRET_KEY')
 
 # DB 연결 함수
 def get_db_connection():
-    conn = sqlite3.connect('reservation_system.db')
+    conn = sqlite3.connect(app_db_file_path)
     conn.row_factory = sqlite3.Row
     return conn
 

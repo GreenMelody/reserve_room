@@ -1,8 +1,17 @@
+import os
 import sqlite3
+from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash
 
+dotenv_path = os.path.abspath(os.path.join('sharedworkspace/','.env'))
+load_dotenv(dotenv_path)
+
+app_db_path = os.getenv('DB_PATH')
+app_db_file = os.getenv('DB_FILE')
+app_db_file_path = os.path.join(app_db_path, app_db_file)
+
 def create_tables():
-    conn = sqlite3.connect('reservation_system.db')
+    conn = sqlite3.connect(app_db_file_path)
     cursor = conn.cursor()
 
     # 사용자 테이블 생성
