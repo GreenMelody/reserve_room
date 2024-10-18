@@ -251,11 +251,17 @@
                     dateCell.textContent = currentDate.toISOString().split('T')[0];
                     row.appendChild(dateCell);
 
-                    for (let i = 0; i < 24; i++) {
-                        const cell = document.createElement('td');
+                    let i = 0;  // 시간(0~23)을 나타내는 변수
+                    while (i < 24) {
                         const reservation = reservations.find(r => r.date === dateCell.textContent && r.start_time <= i && r.end_time > i);
 
                         if (reservation) {
+                            // 병합할 셀의 길이 계산
+                            const colSpan = reservation.end_time - reservation.start_time;
+
+                            const cell = document.createElement('td');
+                            cell.colSpan = colSpan;  // 병합할 셀 수
+
                             if (reservation.user_id === currentUserId) {
                                 if (reservation.status === '예약요청') {
                                     cell.style.backgroundColor = 'orange';  // 나의 예약 요청
@@ -264,11 +270,7 @@
                                 }
 
                                 if (currentUserRole === '승인자' || currentUserRole === '관리자') {
-                                    if (reservation.status === '예약요청') {
-                                        cell.innerHTML="M";
-                                    } else if (reservation.status === '예약완료') {
-                                        cell.innerHTML="M";
-                                    }
+                                    cell.innerHTML = reservation.status === '예약요청' ? 'M' : 'M';
                                     cell.addEventListener('click', function () {
                                         openAdminReservationModal(reservation.id);
                                     });
@@ -281,7 +283,6 @@
                                 }
                             } else {
                                 if (currentUserRole === '승인자' || currentUserRole === '관리자') {
-                                    //승인자, 관리자는 다른 유저의 예약도 색상으로 표시
                                     if (reservation.status === '예약요청') {
                                         cell.style.backgroundColor = 'orange';
                                     } else if (reservation.status === '예약완료') {
@@ -294,13 +295,23 @@
                                     cell.style.backgroundColor = 'lightgray'; // 다른 사용자의 예약
                                 }
                             }
+
+                            row.appendChild(cell);
+                            i += colSpan;  // 병합된 셀 크기만큼 증가
                         } else {
-                            cell.style.backgroundColor = 'white';  // 예약 없음
-                            cell.addEventListener('click', function () {
-                                openReservationModal(dateCell.textContent, i);
+                            // 빈 시간대를 처리
+                            const emptyCell = document.createElement('td');
+                            emptyCell.style.backgroundColor = 'white';  // 예약 없음
+                            let currentHourCopy = i;  // 클로저 문제 해결: 반복마다 i 값을 복사
+
+                            // 빈 셀 클릭 시 예약 모달 열기
+                            emptyCell.addEventListener('click', function () {
+                                openReservationModal(dateCell.textContent, currentHourCopy);  // 클릭한 시간을 전달
                             });
+
+                            row.appendChild(emptyCell);
+                            i += 1;  // 1시간씩 이동
                         }
-                        row.appendChild(cell);
                     }
 
                     reservationTable.appendChild(row);
@@ -386,7 +397,7 @@
                     if (data.error) {
                         showToast('중복된 예약이 있습니다.');
                     } else {
-                        alert('예약이 완료되었습니다.');
+                        alert('예약 요청이 완료되었습니다.');
                         reservationModal.hide();
                         fetchReservations();
                     }
