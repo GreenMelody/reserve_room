@@ -49,6 +49,25 @@
                 <a href="/logout" class="btn btn-danger">로그아웃</a>
             </div>
         </div>
+        <div class="row mx-1">
+            <div class="col-12 my-3">
+                <div class="d-flex align-items-center">
+                    <!-- 다른 사용자 예약 상태 -->
+                    <div style="width: 20px; height: 20px; background-color: lightgray; margin-right: 8px;"></div>
+                    <span>: 다른 사용자 예약요청 또는 예약완료</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <!-- 나의 예약 요청 -->
+                    <div style="width: 20px; height: 20px; background-color: orange; margin-right: 8px;"></div>
+                    <span>: 예약 요청</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <!-- 나의 예약 완료 -->
+                    <div style="width: 20px; height: 20px; background-color: green; margin-right: 8px;"></div>
+                    <span>: 예약 완료</span>
+                </div>
+            </div>
+        </div>
 
         <div class="my-2">
             <!-- 예약 현황 표 -->
@@ -245,6 +264,11 @@
                                 }
 
                                 if (currentUserRole === '승인자' || currentUserRole === '관리자') {
+                                    if (reservation.status === '예약요청') {
+                                        cell.innerHTML="M";
+                                    } else if (reservation.status === '예약완료') {
+                                        cell.innerHTML="M";
+                                    }
                                     cell.addEventListener('click', function () {
                                         openAdminReservationModal(reservation.id);
                                     });
@@ -257,11 +281,18 @@
                                 }
                             } else {
                                 if (currentUserRole === '승인자' || currentUserRole === '관리자') {
+                                    //승인자, 관리자는 다른 유저의 예약도 색상으로 표시
+                                    if (reservation.status === '예약요청') {
+                                        cell.style.backgroundColor = 'orange';
+                                    } else if (reservation.status === '예약완료') {
+                                        cell.style.backgroundColor = 'green';
+                                    }
                                     cell.addEventListener('click', function () {
                                         openApprovalModal(reservation.id);
                                     });
+                                } else {
+                                    cell.style.backgroundColor = 'lightgray'; // 다른 사용자의 예약
                                 }
-                                cell.style.backgroundColor = 'lightgray'; // 다른 사용자의 예약
                             }
                         } else {
                             cell.style.backgroundColor = 'white';  // 예약 없음
